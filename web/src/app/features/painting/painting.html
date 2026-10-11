@@ -1,0 +1,236 @@
+@if (painting.isLoading()) {
+  <app-spinner label="…جارٍ تحميل اللوحة" />
+} @else if (painting.error()) {
+  <div class="text-center py-28 px-6">
+    <p class="font-display text-2xl text-ink-800 mb-3">لم نجد هذه اللوحة</p>
+    <p class="text-sm text-ink-400 mb-8">ربما بيعت وأُزيلت، أو الرابط غير صحيح.</p>
+    <a routerLink="/paintings" class="border border-ink-300 px-6 py-2.5 text-sm hover:border-ink-900 transition-colors">
+      تصفّح المعرض
+    </a>
+  </div>
+} @else if (painting.value(); as p) {
+
+  <div class="mx-auto max-w-7xl px-4 sm:px-8 py-5 sm:py-10">
+
+    <nav class="hidden sm:flex text-xs text-ink-400 mb-5 sm:mb-8 items-center gap-2 flex-wrap" aria-label="مسار التنقّل">
+      <a routerLink="/" class="hover:text-ink-700 transition-colors">الرئيسية</a>
+      <span aria-hidden="true">/</span>
+      <a routerLink="/paintings" class="hover:text-ink-700 transition-colors">المعرض</a>
+      @if (p.category) {
+        <span aria-hidden="true">/</span>
+        <a [routerLink]="['/paintings']" [queryParams]="{ category: p.category.slug }"
+           class="hover:text-ink-700 transition-colors">{{ p.category.name }}</a>
+      }
+      <span aria-hidden="true">/</span>
+      <span class="text-ink-600">{{ p.title }}</span>
+    </nav>
+
+    <div class="grid lg:grid-cols-2 gap-7 lg:gap-14">
+
+      <!-- ==================== الصور ==================== -->
+      <div>
+        <div class="card p-3 sm:p-4 mb-3 overflow-hidden">
+          @if (currentImage(); as img) {
+            <button type="button" (click)="zoomed.set(!zoomed())"
+                    class="mat !aspect-[4/5] sm:!aspect-[3/4] w-full cursor-zoom-in
+                           max-h-[40vh] sm:max-h-none"
+                    [attr.aria-label]="zoomed() ? 'تصغير الصورة' : 'تكبير الصورة'">
+              <img [src]="img.large" [alt]="img.alt || p.title"
+                   fetchpriority="high" decoding="async"
+                   [class.scale-150]="zoomed()" />
+            </button>
+          }
+        </div>
+
+        @if (p.images.length > 1) {
+          <div class="flex gap-2 sm:gap-3">
+            @for (img of p.images; track img.id; let i = $index) {
+              <button type="button" (click)="activeImage.set(i); zoomed.set(false)"
+                      class="w-14 sm:w-20 border-2 transition-colors p-1 bg-canvas-50"
+                      [class]="i === activeImage() ? 'border-gilt-500' : 'border-transparent hover:border-ink-200'"
+                      [attr.aria-label]="'عرض الصورة ' + (i + 1)"
+                      [attr.aria-current]="i === activeImage()">
+                <img [src]="img.thumb" [alt]="img.alt || p.title" loading="lazy" class="w-full h-auto" />
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- ==================== التفاصيل ==================== -->
+      <div>
+        <div class="flex items-start justify-between gap-4 mb-3">
+          <h1 class="font-display text-2xl sm:text-3xl lg:text-4xl text-ink-900 leading-snug">{{ p.title }}</h1>
+
+          <button type="button" (click)="toggleWishlist()"
+                  class="shrink-0 p-2.5 transition-colors"
+                  [class]="wishlisted() ? 'text-danger' : 'text-ink-300 hover:text-danger'"
+                  [attr.aria-label]="wishlisted() ? 'إزالة من المفضّلة' : 'إضافة إلى المفضّلة'"
+                  [attr.aria-pressed]="wishlisted()">
+            <svg viewBox="0 0 24 24" class="w-6 h-6" [attr.fill]="wishlisted() ? 'currentColor' : 'none'"
+                 stroke="currentColor" stroke-width="1.5">
+              <path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 00-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 000-7.8z"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+
+        @if (p.rating.count > 0) {
+          <div class="mb-4"><app-star-rating [rating]="p.rating.average" [count]="p.rating.count" /></div>
+        }
+
+        <div class="flex items-baseline gap-3 mb-6">
+          <span class="font-display text-2xl sm:text-3xl text-ink-900" data-numeric>{{ p.effectivePrice | money }}</span>
+          @if (p.hasDiscount) {
+            <span class="text-ink-300 line-through" data-numeric>{{ p.price | money }}</span>
+            <span class="text-xs bg-danger/10 text-danger px-2 py-1">خصم</span>
+          }
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 mb-7">
+          <span class="text-xs px-2.5 py-1 bg-canvas-200 text-ink-600">{{ p.typeLabel }}</span>
+          <span class="text-xs px-2.5 py-1"
+                [class]="p.isPurchasable || p.isReservable ? 'bg-success/12 text-success' : 'bg-ink-100 text-ink-500'">
+            {{ p.availabilityLabel }}
+          </span>
+          @if (p.dimensions) {
+            <span class="text-xs px-2.5 py-1 bg-canvas-200 text-ink-600" data-numeric>{{ p.dimensions | dimensions }}</span>
+          }
+        </div>
+
+        @if (p.shortDescription) {
+          <p class="text-ink-600 leading-relaxed mb-8">{{ p.shortDescription }}</p>
+        }
+
+        <!-- ============ الإجراء: شراء أو حجز ============ -->
+        <div class="border-t border-ink-100 pt-8 mb-8">
+          @if (error()) {
+            <p class="text-sm text-danger mb-4" role="alert">{{ error() }}</p>
+          }
+
+          @if (p.isPurchasable) {
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button type="button" (click)="buyNow()" [disabled]="adding()"
+                      class="btn btn-primary flex-1">
+                اشترِ الآن
+              </button>
+              <button type="button" (click)="addToCart()" [disabled]="adding()"
+                      class="btn btn-ghost flex-1">
+                @if (added()) { ✓ أُضيفت إلى السلة } @else { أضف إلى السلة }
+              </button>
+            </div>
+            <p class="text-xs text-ink-400 mt-3">قطعة واحدة متاحة — تُشحن خلال ٣ إلى ٦ أيام داخل السعودية.</p>
+
+          } @else if (p.isReservable) {
+            <div class="bg-canvas-200/60 p-6 mb-4">
+              <p class="text-sm text-ink-700 leading-relaxed mb-4">
+                هذا العمل يُرسم خصيصاً لك. اختر المقاس وصف ما تريد، وستراجع الفنانة
+                طلبك وتحدّد السعر النهائي والمدة قبل أي دفع.
+              </p>
+
+              <dl class="grid grid-cols-2 gap-y-2.5 text-sm">
+                @if (p.reservation) {
+                  <dt class="text-ink-400">العربون</dt>
+                  <dd class="text-ink-800" data-numeric>{{ p.reservation.depositPercentage }}٪ تقريباً</dd>
+
+                  @if (p.reservation.productionDays) {
+                    <dt class="text-ink-400">مدة التنفيذ</dt>
+                    <dd class="text-ink-800" data-numeric>{{ p.reservation.productionDays }} يوماً تقريباً</dd>
+                  }
+                }
+              </dl>
+            </div>
+
+            <button type="button" (click)="reserve()"
+                    class="btn btn-gilt w-full">
+              اطلب هذه اللوحة
+            </button>
+            <p class="text-xs text-ink-400 mt-3">لا يُخصم أي مبلغ الآن — الدفع بعد موافقة الفنانة.</p>
+
+          } @else {
+            <div class="bg-ink-100/60 p-6 text-center">
+              <p class="font-display text-lg text-ink-700 mb-1">{{ p.availabilityLabel }}</p>
+              <p class="text-sm text-ink-500 mb-5">هذا العمل لم يعد متاحاً — لكل لوحة نسخة واحدة.</p>
+              <a routerLink="/paintings" [queryParams]="{ type: 'reservable' }"
+                 class="inline-block border border-ink-400 px-6 py-2.5 text-sm hover:border-ink-900 transition-colors">
+                اطلب عملاً مشابهاً
+              </a>
+            </div>
+          }
+        </div>
+
+        <!-- ============ المواصفات ============ -->
+        <div class="border-t border-ink-100 pt-8">
+          <h2 class="font-display text-lg text-ink-900 mb-5">المواصفات</h2>
+          <dl class="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3 text-sm">
+            @if (p.dimensions) {
+              <dt class="text-ink-400">المقاس</dt><dd class="text-ink-800" data-numeric>{{ p.dimensions | dimensions }}</dd>
+            }
+            @if (p.material) { <dt class="text-ink-400">الخامة</dt><dd class="text-ink-800">{{ p.material }}</dd> }
+            @if (p.medium) { <dt class="text-ink-400">الوسيط</dt><dd class="text-ink-800">{{ p.medium }}</dd> }
+            @if (p.frameInfo) { <dt class="text-ink-400">الإطار</dt><dd class="text-ink-800">{{ p.frameInfo }}</dd> }
+            @if (p.style) { <dt class="text-ink-400">الأسلوب</dt><dd class="text-ink-800">{{ p.style }}</dd> }
+            @if (p.weight) { <dt class="text-ink-400">الوزن</dt><dd class="text-ink-800" data-numeric>{{ p.weight }} كجم</dd> }
+            <dt class="text-ink-400">رقم العمل</dt><dd class="text-ink-800" data-numeric>{{ p.sku }}</dd>
+            @if (p.artist?.name) { <dt class="text-ink-400">الفنانة</dt><dd class="text-ink-800">{{ p.artist.name }}</dd> }
+          </dl>
+
+          @if (p.tags.length) {
+            <div class="flex flex-wrap gap-2 mt-6">
+              @for (t of p.tags; track t.slug) {
+                <span class="text-xs px-2.5 py-1 border border-ink-200 text-ink-500">{{ t.name }}</span>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== الوصف ==================== -->
+    @if (p.description) {
+      <section class="mt-20 max-w-3xl">
+        <h2 class="font-display text-2xl text-ink-900 mb-5">عن هذا العمل</h2>
+        <div class="text-ink-600 leading-loose whitespace-pre-line">{{ p.description }}</div>
+      </section>
+    }
+
+    <!-- ==================== المراجعات ==================== -->
+    <section class="mt-20 max-w-3xl">
+      <h2 class="font-display text-2xl text-ink-900 mb-6">آراء المقتنين</h2>
+
+      @if (reviews.value(); as rev) {
+        @if (rev.data.length === 0) {
+          <p class="text-sm text-ink-400">لا توجد مراجعات بعد لهذا العمل.</p>
+        } @else {
+          <ul class="space-y-7">
+            @for (r of rev.data; track r.id) {
+              <li class="border-b border-ink-100 pb-7 last:border-0">
+                <div class="flex items-center gap-3 mb-2">
+                  <app-star-rating [rating]="r.rating" />
+                  <span class="text-sm text-ink-700">{{ r.authorName }}</span>
+                  <span class="text-xs text-ink-300" data-numeric>{{ r.createdAt | arDate }}</span>
+                </div>
+                @if (r.title) { <p class="font-medium text-ink-800 mb-1">{{ r.title }}</p> }
+                @if (r.body) { <p class="text-sm text-ink-600 leading-relaxed">{{ r.body }}</p> }
+              </li>
+            }
+          </ul>
+        }
+      }
+    </section>
+
+    <!-- ==================== أعمال ذات صلة ==================== -->
+    @if (related.value(); as rel) {
+      @if (rel.data.length) {
+        <section class="mt-24">
+          <h2 class="font-display text-2xl text-ink-900 mb-8">قد يعجبك أيضاً</h2>
+          <div class="grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
+            @for (r of rel.data; track r.id) {
+              <app-painting-card [painting]="r" />
+            }
+          </div>
+        </section>
+      }
+    }
+  </div>
+}

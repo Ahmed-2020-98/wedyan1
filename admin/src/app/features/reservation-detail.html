@@ -1,0 +1,248 @@
+<a routerLink="/reservations" class="text-sm text-ink-400 hover:text-ink-700 mb-6 inline-block transition-colors">
+  → كل الحجوزات
+</a>
+
+@if (reservation.isLoading()) {
+  <app-spinner />
+} @else if (reservation.value(); as res) {
+  @if (res.data; as r) {
+
+    <div class="flex flex-wrap items-start justify-between gap-4 mb-8">
+      <div>
+        <h1 class="font-display text-2xl text-ink-900 mb-1" data-numeric>{{ r.reservationNumber }}</h1>
+        <p class="text-sm text-ink-500">
+          {{ r.customer?.name }} · <span dir="ltr">{{ r.customer?.email }}</span> ·
+          <span data-numeric>{{ r.customer?.phone }}</span>
+        </p>
+      </div>
+      <span class="text-xs px-3 py-1.5 bg-canvas-200 text-ink-700">{{ r.statusLabel }}</span>
+    </div>
+
+    @if (error()) {
+      <p class="bg-danger/8 border-s-2 border-danger px-4 py-3 text-sm text-danger mb-6" role="alert">{{ error() }}</p>
+    }
+
+    <div class="grid lg:grid-cols-[1fr_20rem] gap-6 items-start">
+      <div class="space-y-6">
+
+        <!-- ============ الطلب ============ -->
+        <section class="frame rounded-card p-6">
+          <h2 class="font-display text-lg text-ink-900 mb-5">ما طلبه الزبون</h2>
+
+          @for (item of r.items; track item.title) {
+            <div class="mb-4">
+              <p class="text-sm text-ink-800 mb-1">{{ item.title }}</p>
+              @if (item.dimensions) {
+                <p class="text-xs text-ink-400 mb-2" data-numeric>{{ item.dimensions | dimensions }}</p>
+              }
+              @if (item.description) {
+                <p class="text-sm text-ink-600 leading-relaxed">{{ item.description }}</p>
+              }
+              @if (item.preferredColors) {
+                <p class="text-xs text-ink-400 mt-2">ألوان مفضّلة: {{ item.preferredColors }}</p>
+              }
+            </div>
+          }
+
+          @if (r.customerNote) {
+            <div class="mt-4 pt-4 border-t border-ink-100">
+              <p class="text-xs text-ink-400 mb-1">ملاحظة الزبون</p>
+              <p class="text-sm text-ink-600 leading-relaxed">{{ r.customerNote }}</p>
+            </div>
+          }
+
+          @if (r.shipping.city) {
+            <div class="mt-4 pt-4 border-t border-ink-100">
+              <p class="text-xs text-ink-400 mb-1">عنوان التسليم</p>
+              <p class="text-sm text-ink-600 leading-relaxed">
+                {{ r.shipping.name }} — {{ r.shipping.street }}@if (r.shipping.district) {، {{ r.shipping.district }}}، {{ r.shipping.city }}
+              </p>
+            </div>
+          }
+        </section>
+
+        <!-- ============ لوح الإجراء ============ -->
+        @if (panel() === 'accept') {
+          <section class="frame rounded-card p-6">
+            <h2 class="font-display text-lg text-ink-900 mb-5">قبول الطلب وتحديد السعر</h2>
+            <form [formGroup]="acceptForm" (ngSubmit)="accept()" class="space-y-5">
+              <label class="block">
+                <span class="block text-sm text-ink-600 mb-2">السعر (ر.س) <span class="text-danger">*</span></span>
+                <input formControlName="price" type="number" min="1"
+                       class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+                <span class="text-xs text-ink-400 mt-1 block" data-numeric>
+                  العربون سيكون {{ r.depositPercentage }}٪ من هذا المبلغ.
+                </span>
+              </label>
+
+              <label class="block">
+                <span class="block text-sm text-ink-600 mb-2">ملاحظة للزبون</span>
+                <textarea formControlName="note" rows="3" placeholder="سأبدأ فور وصول العربون، والمدة المتوقعة…"
+                          class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500 resize-y"></textarea>
+              </label>
+
+              <label class="block">
+                <span class="block text-sm text-ink-600 mb-2">التسليم المتوقّع</span>
+                <input formControlName="due_date" type="date"
+                       class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+              </label>
+
+              <div class="flex gap-3">
+                <button type="submit" [disabled]="busy()"
+                        class="bg-ink-900 text-canvas-50 px-6 py-3 text-sm hover:bg-ink-800 disabled:opacity-50 transition-colors">
+                  اقبل الطلب
+                </button>
+                <button type="button" (click)="panel.set('none')"
+                        class="border border-ink-300 px-6 py-3 text-sm hover:border-ink-900 transition-colors">إلغاء</button>
+              </div>
+            </form>
+          </section>
+        }
+
+        @if (panel() === 'reject') {
+          <section class="frame rounded-card p-6">
+            <h2 class="font-display text-lg text-ink-900 mb-5">الاعتذار عن الطلب</h2>
+            <form [formGroup]="rejectForm" (ngSubmit)="reject()" class="space-y-5">
+              <label class="block">
+                <span class="block text-sm text-ink-600 mb-2">السبب (يراه الزبون) <span class="text-danger">*</span></span>
+                <textarea formControlName="reason" rows="3"
+                          class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500 resize-y"></textarea>
+              </label>
+              <div class="flex gap-3">
+                <button type="submit" [disabled]="busy()"
+                        class="bg-danger text-canvas-50 px-6 py-3 text-sm hover:opacity-90 disabled:opacity-50 transition-opacity">
+                  أرسل الاعتذار
+                </button>
+                <button type="button" (click)="panel.set('none')"
+                        class="border border-ink-300 px-6 py-3 text-sm hover:border-ink-900 transition-colors">إلغاء</button>
+              </div>
+            </form>
+          </section>
+        }
+
+        @if (panel() === 'update') {
+          <section class="frame rounded-card p-6">
+            <h2 class="font-display text-lg text-ink-900 mb-5">تحديث مرحلة</h2>
+            <form [formGroup]="updateForm" (ngSubmit)="addUpdate()" class="space-y-5">
+              <label class="block">
+                <span class="block text-sm text-ink-600 mb-2">العنوان <span class="text-danger">*</span></span>
+                <input formControlName="title" type="text" placeholder="طبقة الألوان الأولى"
+                       class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" />
+              </label>
+
+              <label class="block">
+                <span class="block text-sm text-ink-600 mb-2">التفاصيل</span>
+                <textarea formControlName="note" rows="3"
+                          class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500 resize-y"></textarea>
+              </label>
+
+              <label class="block">
+                <span class="block text-sm text-ink-600 mb-2">نسبة الإنجاز (٪)</span>
+                <input formControlName="progress_percentage" type="number" min="0" max="100"
+                       class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+              </label>
+
+              <label class="flex items-center gap-2.5 text-sm text-ink-600">
+                <input formControlName="visible_to_customer" type="checkbox" class="accent-gilt-600" />
+                يراها الزبون
+              </label>
+
+              <div class="flex gap-3">
+                <button type="submit" [disabled]="busy()"
+                        class="bg-ink-900 text-canvas-50 px-6 py-3 text-sm hover:bg-ink-800 disabled:opacity-50 transition-colors">
+                  أضف التحديث
+                </button>
+                <button type="button" (click)="panel.set('none')"
+                        class="border border-ink-300 px-6 py-3 text-sm hover:border-ink-900 transition-colors">إلغاء</button>
+              </div>
+            </form>
+          </section>
+        }
+
+        <!-- ============ سجلّ المراحل ============ -->
+        @if (r.updates?.length) {
+          <section class="frame rounded-card p-6">
+            <h2 class="font-display text-lg text-ink-900 mb-5">السجلّ</h2>
+            <ol class="space-y-5">
+              @for (u of r.updates; track u.createdAt) {
+                <li class="relative ps-6 border-s border-ink-100">
+                  <span class="absolute start-0 top-1.5 -translate-x-1/2 rtl:translate-x-1/2 w-2 h-2 rounded-full bg-gilt-500"></span>
+                  <p class="text-sm text-ink-800 mb-1">{{ u.title }}</p>
+                  @if (u.note) { <p class="text-sm text-ink-500 leading-relaxed mb-1">{{ u.note }}</p> }
+                  @if (u.imageUrl) { <img [src]="u.imageUrl" [alt]="u.title" class="max-w-[14rem] my-2" /> }
+                  <p class="text-xs text-ink-300" data-numeric>{{ u.createdAt | arDateTime }}</p>
+                </li>
+              }
+            </ol>
+          </section>
+        }
+      </div>
+
+      <!-- ============ الإجراءات والمبالغ ============ -->
+      <aside class="space-y-4 lg:sticky lg:top-6">
+        <section class="frame rounded-card p-5">
+          <h2 class="font-display text-base text-ink-900 mb-4">الإجراءات</h2>
+
+          <div class="space-y-2.5">
+            @if (r.status === 'pending' || r.status === 'under_review') {
+              <button type="button" (click)="panel.set('accept')"
+                      class="w-full bg-ink-900 text-canvas-50 py-3 text-sm hover:bg-ink-800 transition-colors">
+                اقبل وحدّد السعر
+              </button>
+              <button type="button" (click)="panel.set('reject')"
+                      class="w-full border border-danger/40 text-danger py-3 text-sm hover:bg-danger/5 transition-colors">
+                اعتذر عن الطلب
+              </button>
+            }
+
+            @if (r.status === 'in_production') {
+              <button type="button" (click)="panel.set('update')"
+                      class="w-full bg-gilt-600 text-canvas-50 py-3 text-sm hover:bg-gilt-700 transition-colors">
+                أضف تحديث مرحلة
+              </button>
+              <button type="button" (click)="complete()" [disabled]="busy()"
+                      class="w-full border border-ink-300 py-3 text-sm hover:border-ink-900 disabled:opacity-50 transition-colors">
+                اكتملت اللوحة
+              </button>
+            }
+
+            @if (r.status === 'accepted' || r.status === 'deposit_pending') {
+              <p class="text-sm text-ink-400 leading-relaxed py-2">
+                بانتظار دفع الزبون. يبدأ التنفيذ تلقائياً فور وصول العربون.
+              </p>
+            }
+
+            @if (r.status === 'ready_for_delivery') {
+              <p class="text-sm text-success leading-relaxed py-2">
+                اكتمل السداد. جهّز الشحن وسجّل رقم التتبّع.
+              </p>
+            }
+
+            @if (r.status === 'completed' && !r.isFullyPaid) {
+              <p class="text-sm text-warning leading-relaxed py-2">
+                اكتملت اللوحة، وبانتظار سداد المتبقّي قبل الشحن.
+              </p>
+            }
+          </div>
+        </section>
+
+        @if (r.price) {
+          <section class="frame rounded-card p-5">
+            <h2 class="font-display text-base text-ink-900 mb-4">المبالغ</h2>
+            <dl class="space-y-2.5 text-sm">
+              <div class="flex justify-between"><dt class="text-ink-400">السعر</dt><dd data-numeric>{{ r.price | money }}</dd></div>
+              <div class="flex justify-between"><dt class="text-ink-400">العربون</dt><dd data-numeric>{{ r.depositAmount | money }}</dd></div>
+              <div class="flex justify-between"><dt class="text-ink-400">المدفوع</dt><dd class="text-success" data-numeric>{{ r.paidAmount | money }}</dd></div>
+              <div class="flex justify-between"><dt class="text-ink-400">المتبقّي</dt><dd data-numeric>{{ r.remainingAmount | money }}</dd></div>
+              @if (r.dueDate) {
+                <div class="flex justify-between pt-2 border-t border-ink-100">
+                  <dt class="text-ink-400">التسليم</dt><dd data-numeric>{{ r.dueDate | arDate }}</dd>
+                </div>
+              }
+            </dl>
+          </section>
+        }
+      </aside>
+    </div>
+  }
+}

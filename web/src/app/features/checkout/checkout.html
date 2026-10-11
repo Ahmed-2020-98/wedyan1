@@ -1,0 +1,204 @@
+<div class="mx-auto max-w-6xl px-4 sm:px-8 py-6 sm:py-10">
+  <h1 class="font-display text-2xl sm:text-3xl text-ink-900 mb-6 sm:mb-8">إتمام الطلب</h1>
+
+  @if (cart.isEmpty()) {
+    <div class="text-center py-20">
+      <p class="font-display text-xl text-ink-700 mb-3">سلّتك فارغة</p>
+      <a routerLink="/paintings" class="text-sm text-gilt-700 hover:underline">تصفّح المعرض</a>
+    </div>
+  } @else if (cart.cart(); as c) {
+    <form [formGroup]="form" (ngSubmit)="submit()" class="grid lg:grid-cols-[1fr_21rem] gap-6 lg:gap-10 items-start">
+
+      <div class="space-y-9">
+
+        <!-- ============ عناوين محفوظة ============ -->
+        @if (addresses.value(); as saved) {
+          @if (saved.data.length) {
+            <section>
+              <h2 class="font-display text-lg text-ink-900 mb-4">عناوينك المحفوظة</h2>
+              <div class="grid sm:grid-cols-2 gap-3">
+                @for (a of saved.data; track a.id) {
+                  <button type="button" (click)="useAddress(a)"
+                          class="text-start border border-ink-200 p-4 hover:border-gilt-500 transition-colors">
+                    <span class="block text-sm text-ink-800 mb-1">{{ a.label || a.recipientName }}</span>
+                    <span class="block text-xs text-ink-400 leading-relaxed">
+                      {{ a.city }}@if (a.district) {، {{ a.district }}}<br />{{ a.street }}
+                    </span>
+                  </button>
+                }
+              </div>
+            </section>
+          }
+        }
+
+        <!-- ============ بيانات الشحن ============ -->
+        <section class="frame rounded-card p-5 sm:p-7">
+          <h2 class="font-display text-lg text-ink-900 mb-6">عنوان الشحن</h2>
+
+          <div class="grid sm:grid-cols-2 gap-5">
+            <label class="block">
+              <span class="block text-sm text-ink-600 mb-2">الاسم <span class="text-danger">*</span></span>
+              <input formControlName="recipient_name" type="text" autocomplete="name"
+                     class="field text-sm"
+                     [class.border-danger]="invalid('recipient_name')" />
+              @if (invalid('recipient_name')) { <span class="text-xs text-danger mt-1 block">الاسم مطلوب</span> }
+            </label>
+
+            <label class="block">
+              <span class="block text-sm text-ink-600 mb-2">الجوال <span class="text-danger">*</span></span>
+              <input formControlName="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="05xxxxxxxx"
+                     class="field text-sm"
+                     [class.border-danger]="invalid('phone')" data-numeric />
+              @if (invalid('phone')) { <span class="text-xs text-danger mt-1 block">أدخل رقم جوال سعودي صحيح</span> }
+            </label>
+
+            <label class="block">
+              <span class="block text-sm text-ink-600 mb-2">الدولة <span class="text-danger">*</span></span>
+              <select formControlName="country"
+                      class="field text-sm">
+                <option value="SA">السعودية</option>
+                <option value="AE">الإمارات</option>
+                <option value="KW">الكويت</option>
+                <option value="QA">قطر</option>
+                <option value="BH">البحرين</option>
+                <option value="OM">عُمان</option>
+                <option value="EG">مصر</option>
+              </select>
+            </label>
+
+            <label class="block">
+              <span class="block text-sm text-ink-600 mb-2">المدينة <span class="text-danger">*</span></span>
+              <input formControlName="city" type="text" autocomplete="address-level2"
+                     class="field text-sm"
+                     [class.border-danger]="invalid('city')" />
+              @if (invalid('city')) { <span class="text-xs text-danger mt-1 block">المدينة مطلوبة</span> }
+            </label>
+
+            <label class="block">
+              <span class="block text-sm text-ink-600 mb-2">الحي</span>
+              <input formControlName="district" type="text"
+                     class="field text-sm" />
+            </label>
+
+            <label class="block">
+              <span class="block text-sm text-ink-600 mb-2">الرمز البريدي</span>
+              <input formControlName="postal_code" type="text" inputmode="numeric"
+                     class="field text-sm" data-numeric />
+            </label>
+
+            <label class="block sm:col-span-2">
+              <span class="block text-sm text-ink-600 mb-2">الشارع والمبنى <span class="text-danger">*</span></span>
+              <input formControlName="street" type="text" autocomplete="street-address"
+                     class="field text-sm"
+                     [class.border-danger]="invalid('street')" />
+              @if (invalid('street')) { <span class="text-xs text-danger mt-1 block">العنوان مطلوب</span> }
+            </label>
+
+            <label class="block sm:col-span-2">
+              <span class="block text-sm text-ink-600 mb-2">ملاحظات للتوصيل</span>
+              <textarea formControlName="notes" rows="2"
+                        class="field text-sm resize-y"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <!-- ============ طريقة الشحن ============ -->
+        <section class="frame rounded-card p-5 sm:p-7">
+          <h2 class="font-display text-lg text-ink-900 mb-6">طريقة الشحن</h2>
+
+          @if (shippingOptions.value(); as opts) {
+            @if (opts.data.length === 0) {
+              <p class="text-sm text-warning">لا يوجد شحن متاح لهذه الدولة حالياً.</p>
+            } @else {
+              <div class="space-y-3">
+                @for (rate of opts.data; track rate.id) {
+                  <button type="button" (click)="chooseRate(rate)"
+                          class="w-full text-start border p-4 flex items-center justify-between gap-4 transition-colors"
+                          [class]="selectedRate()?.id === rate.id ? 'border-gilt-500 bg-gilt-500/5' : 'border-ink-200 hover:border-ink-400'">
+                    <span>
+                      <span class="block text-sm text-ink-800">{{ rate.name }}</span>
+                      @if (rate.estimatedDays.min) {
+                        <span class="block text-xs text-ink-400 mt-0.5" data-numeric>
+                          {{ rate.estimatedDays.min }}–{{ rate.estimatedDays.max }} أيام عمل
+                        </span>
+                      }
+                    </span>
+                    <span class="text-sm shrink-0" [class]="rate.isFree ? 'text-success' : 'text-ink-800'" data-numeric>
+                      @if (rate.isFree) { شحن مجاني } @else { {{ rate.cost | money }} }
+                    </span>
+                  </button>
+                }
+              </div>
+            }
+          }
+        </section>
+      </div>
+
+      <!-- ============ الملخّص ============ -->
+      <aside class="frame rounded-card p-5 sm:p-6 lg:sticky lg:top-24">
+        <h2 class="font-display text-lg text-ink-900 mb-5 pb-4 border-b border-ink-100">طلبك</h2>
+
+        <ul class="space-y-3 mb-6 max-h-64 overflow-y-auto">
+          @for (item of c.items; track item.id) {
+            <li class="flex gap-3 text-sm">
+              @if (item.painting.mainImage; as img) {
+                <img [src]="img.thumb" [alt]="item.painting.title" loading="lazy" class="w-12 h-auto bg-canvas-200 shrink-0" />
+              }
+              <span class="flex-1 min-w-0">
+                <span class="block text-ink-800 truncate">{{ item.painting.title }}</span>
+                <span class="block text-xs text-ink-400" data-numeric>×{{ item.quantity }}</span>
+              </span>
+              <span class="text-ink-700 shrink-0" data-numeric>{{ item.lineTotal | money }}</span>
+            </li>
+          }
+        </ul>
+
+        <dl class="space-y-2.5 text-sm border-t border-ink-100 pt-5">
+          <div class="flex justify-between">
+            <dt class="text-ink-400">الإجمالي الفرعي</dt>
+            <dd class="text-ink-800" data-numeric>{{ c.totals.subtotal | money }}</dd>
+          </div>
+          @if (c.totals.discount.amount > 0) {
+            <div class="flex justify-between">
+              <dt class="text-ink-400">الخصم</dt>
+              <dd class="text-success" data-numeric>− {{ c.totals.discount | money }}</dd>
+            </div>
+          }
+          <div class="flex justify-between">
+            <dt class="text-ink-400">الشحن</dt>
+            <dd class="text-ink-800" data-numeric>
+              @if (selectedRate()) {
+                @if (selectedRate()!.isFree) { مجاني } @else { {{ selectedRate()!.cost | money }} }
+              } @else { — }
+            </dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-ink-400">ضريبة القيمة المضافة</dt>
+            <dd class="text-ink-800" data-numeric>{{ c.totals.tax | money }}</dd>
+          </div>
+          <div class="flex justify-between pt-4 border-t border-ink-100">
+            <dt class="font-display text-lg text-ink-900">الإجمالي</dt>
+            <dd class="font-display text-lg text-ink-900" data-numeric>{{ c.totals.total | money }}</dd>
+          </div>
+        </dl>
+
+        <p class="text-[0.7rem] text-ink-400 mt-4 leading-relaxed">
+          الإجمالي النهائي يشمل الشحن والضريبة ويُحتسب في الخادم عند تأكيد الطلب.
+        </p>
+
+        @if (error()) {
+          <p class="text-sm text-danger mt-4" role="alert">{{ error() }}</p>
+        }
+
+        <button type="submit" [disabled]="submitting()"
+                class="btn btn-primary w-full mt-5">
+          @if (submitting()) { …جارٍ التحويل إلى الدفع } @else { المتابعة إلى الدفع }
+        </button>
+
+        <p class="text-[0.7rem] text-ink-400 mt-3 text-center leading-relaxed">
+          الدفع يتم على صفحة المزوّد الآمنة.<br />لا نحتفظ ببيانات بطاقتك.
+        </p>
+      </aside>
+    </form>
+  }
+</div>

@@ -1,0 +1,219 @@
+@import 'tailwindcss';
+
+/*
+|------------------------------------------------------------------------------
+| هوية «وديان»
+|------------------------------------------------------------------------------
+| قاعدتان تحكمان كل قرار هنا:
+|
+| ١) اللوحة هي البطل. لا لون مشبع واحد في الواجهة — أي أزرق أو أخضر فاقع
+|    سيتنازع مع ألوان الأعمال المعروضة ويُفسد إدراك المشتري لها. اللوحة
+|    اللونية حبر دافئ وورق كتّاني ولمسة ذهب، ولا شيء غير ذلك.
+|
+| ٢) الجوال أولاً. أغلب من يتصفّح معرضاً فنياً يفعل ذلك من هاتفه، ولذلك
+|    المقاسات الافتراضية هنا مقاسات جوال، وتكبر عند الشاشات الأوسع لا العكس.
+|
+| ولا تباعد بين الحروف في أي مكان: العربية خط متصل، وletter-spacing يفصل
+| الحروف عن بعضها فيبدو النص مكسوراً. التمييز يكون بالحجم واللون والوزن.
+*/
+
+@theme {
+  /* الحبر — أسود مائل للدفء لا رمادي أزرق */
+  --color-ink-50: #f7f6f4;
+  --color-ink-100: #eae7e2;
+  --color-ink-200: #d4cfc7;
+  --color-ink-300: #b3aca1;
+  --color-ink-400: #8b8378;
+  --color-ink-500: #6b625a;
+  --color-ink-600: #514a43;
+  --color-ink-700: #3b3632;
+  --color-ink-800: #272320;
+  --color-ink-900: #191614;
+  --color-ink-950: #0e0c0b;
+
+  /* الورق — كتّاني دافئ بدل الأبيض الناصع */
+  --color-canvas-50: #fffefc;
+  --color-canvas-100: #faf8f4;
+  --color-canvas-200: #f2efe8;
+  --color-canvas-300: #e7e2d8;
+
+  /* الذهب — للتمييز والحالات، لا للمساحات */
+  --color-gilt-300: #dcc596;
+  --color-gilt-400: #c9ae76;
+  --color-gilt-500: #b3915d;
+  --color-gilt-600: #97784b;
+  --color-gilt-700: #7a613d;
+
+  /* حالات مكتومة — لا تصرخ داخل صالة العرض */
+  --color-success: #4a6b52;
+  --color-warning: #a8763e;
+  --color-danger: #9b4a42;
+  --color-info: #4a5c6b;
+
+  /*
+  | خطّان فقط: أميري للعناوين لأن أصله خط نسخ معدني يليق بسياق فني،
+  | وIBM Plex Sans Arabic للواجهة لوضوحه في الأحجام الصغيرة على الجوال.
+  */
+  --font-display: 'Amiri', 'Times New Roman', serif;
+  --font-sans: 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
+
+  --radius-card: 0.125rem;
+
+  /* ظلّ واحد خافت. الحدود الرفيعة تفصل أكثر من الظلال في تصميم هادئ. */
+  --shadow-frame: 0 1px 2px rgb(25 22 20 / 0.04), 0 8px 24px -14px rgb(25 22 20 / 0.14);
+
+  --ease-gallery: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* يمنع سفاري على iOS من تكبير الخط تلقائياً في الوضع الأفقي */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas-100);
+    color: var(--color-ink-800);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* يترك مساحة لشريط التنقّل السفلي على الجوال */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--color-ink-900);
+  }
+
+  /*
+  | الأرقام لاتينية رغم أن اللغة عربية.
+  | الأسعار وأرقام الطلبات تُقرأ وتُنسخ وتُقارن، والأرقام الهندية تُربك
+  | النسخ واللصق وتقرأها بعض أنظمة الدفع خطأً.
+  */
+  :is(input, [data-numeric]) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* حلقة تركيز واحدة واضحة — وصولية لا تزيين */
+  :focus-visible {
+    outline: 2px solid var(--color-gilt-500);
+    outline-offset: 2px;
+  }
+
+  /* لا تصغير للنص عند التركيز في iOS: أي حقل تحت 16px يُقرِّب الشاشة */
+  @media (max-width: 640px) {
+    input, select, textarea {
+      font-size: 16px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /*
+  | «الباسبارتو»: إطار ورقي بنسبة ثابتة تُعرض داخله اللوحة كاملةً بلا قصّ.
+  |
+  | هذا ما يحلّ أهم توتّر في الصفحة: الأعمال بمقاسات مختلفة (٣٠×٤٠ و١٠٠×١٥٠)،
+  | فإما شبكة غير منتظمة تبدو فوضوية، أو قصّ اللوحات إلى مربّع — وقصّ عمل فني
+  | يشوّه التكوين الذي بُني عليه. الحلّ نفسه الذي تستخدمه صالات العرض:
+  | تثبيت الإطار وترك العمل يتنفّس داخله.
+  */
+  .mat {
+    display: grid;
+    place-items: center;
+    background-color: var(--color-canvas-200);
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+  }
+
+  .mat > img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    transition: transform 0.6s var(--ease-gallery);
+  }
+
+  .group:hover .mat > img {
+    transform: scale(1.03);
+  }
+
+  /* بطاقة بحدّ رفيع بدل ظلّ — أهدأ وأنسب لشبكة كثيفة على الجوال */
+  .card {
+    background: var(--color-canvas-50);
+    border: 1px solid var(--color-ink-100);
+    transition: border-color 0.3s var(--ease-gallery);
+  }
+
+  .card:hover {
+    border-color: var(--color-ink-300);
+  }
+
+  /* الإطار المرتفع — للأسطح المفردة كالفواتير ولوحات الملخّص */
+  .frame {
+    background: var(--color-canvas-50);
+    border: 1px solid var(--color-ink-100);
+    box-shadow: var(--shadow-frame);
+  }
+
+  /* أزرار: مقاس لمس ٤٤ بكسل حدّاً أدنى كما توصي إرشادات آبل */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    transition: background-color 0.2s, border-color 0.2s, opacity 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--color-ink-900);
+    color: var(--color-canvas-50);
+  }
+  .btn-primary:hover { background: var(--color-ink-800); }
+
+  .btn-ghost {
+    border: 1px solid var(--color-ink-200);
+    color: var(--color-ink-800);
+  }
+  .btn-ghost:hover { border-color: var(--color-ink-900); }
+
+  .btn-gilt {
+    background: var(--color-gilt-600);
+    color: var(--color-canvas-50);
+  }
+  .btn-gilt:hover { background: var(--color-gilt-700); }
+
+  .btn:disabled { opacity: 0.45; }
+
+  /* عنوان قسم صغير فوق العناوين — بلا تباعد حروف */
+  .eyebrow {
+    font-size: 0.75rem;
+    color: var(--color-gilt-600);
+  }
+
+  /* حقل إدخال موحّد */
+  .field {
+    width: 100%;
+    background: var(--color-canvas-50);
+    border: 1px solid var(--color-ink-200);
+    padding: 0.75rem 0.875rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field:focus { border-color: var(--color-gilt-500); }
+  .field::placeholder { color: var(--color-ink-300); }
+}

@@ -1,0 +1,157 @@
+<!-- ============================ البطل ============================
+  على الجوال: نصّ قصير ثم اللوحة مباشرةً. المعرض يبيع بالصورة لا بالكلام،
+  وشاشة كاملة من النصّ قبل أول عمل تُفقد الزائر اهتمامه.
+-->
+<section class="mx-auto max-w-7xl px-4 sm:px-8 pt-8 pb-10 sm:pt-16 sm:pb-16">
+  <div class="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+
+    <div class="max-w-lg">
+      <p class="eyebrow mb-3">معرض وديان</p>
+
+      <h1 class="font-display text-[1.75rem] leading-[1.3] sm:text-4xl lg:text-5xl text-ink-900 mb-4">
+        لوحة واحدة<br />لا تتكرّر مرّتين
+      </h1>
+
+      <p class="text-ink-500 text-sm sm:text-base leading-relaxed mb-6">
+        أعمال أصلية مرسومة يدوياً. اقتنِ لوحة جاهزة تصلك خلال أيام،
+        أو اطلب عملاً يُرسم خصيصاً لمساحتك.
+      </p>
+
+      <div class="flex flex-wrap gap-2.5">
+        <a routerLink="/paintings" class="btn btn-primary">تصفّح المعرض</a>
+        <a routerLink="/paintings" [queryParams]="{ type: 'reservable' }" class="btn btn-ghost">
+          اطلب لوحتك
+        </a>
+      </div>
+    </div>
+
+    @if (sections.value(); as data) {
+      @if (data.featured[0]; as hero) {
+        <a [routerLink]="['/paintings', hero.slug]" class="group block card">
+          <div class="mat">
+            @if (hero.mainImage; as img) {
+              <img [src]="img.large" [alt]="img.alt || hero.title" fetchpriority="high" decoding="async" />
+            }
+          </div>
+          <div class="p-4 flex items-baseline justify-between gap-4">
+            <span class="font-display text-base text-ink-900 truncate">{{ hero.title }}</span>
+            <span class="text-sm text-ink-500 shrink-0" data-numeric>{{ hero.effectivePrice.formatted }}</span>
+          </div>
+        </a>
+      }
+    }
+  </div>
+</section>
+
+@if (sections.isLoading()) {
+  <app-spinner label="…جارٍ تحميل المعرض" />
+} @else if (sections.error()) {
+  <p class="text-center text-danger py-16 text-sm">تعذّر تحميل المعرض. حدّث الصفحة.</p>
+} @else if (sections.value(); as data) {
+
+  <!-- ======================= مختارات ======================= -->
+  @if (data.featured.length) {
+    <section class="mx-auto max-w-7xl px-4 sm:px-8 py-10 sm:py-14">
+      <div class="flex items-end justify-between gap-4 mb-5 sm:mb-7">
+        <div>
+          <p class="eyebrow mb-1">مختارات</p>
+          <h2 class="font-display text-xl sm:text-2xl text-ink-900">أعمال مختارة</h2>
+        </div>
+        <a routerLink="/paintings" class="text-sm text-ink-400 hover:text-ink-900 transition-colors shrink-0">
+          الكل ←
+        </a>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+        @for (p of data.featured.slice(0, 4); track p.id) {
+          <app-painting-card [painting]="p" />
+        }
+      </div>
+    </section>
+  }
+
+  <!-- ======================= التصنيفات ======================= -->
+  @if (data.categories.length) {
+    <section class="mx-auto max-w-7xl px-4 sm:px-8 py-6 sm:py-10">
+      <p class="eyebrow mb-1">تصنيفات</p>
+      <h2 class="font-display text-xl sm:text-2xl text-ink-900 mb-5">تصفّح حسب الأسلوب</h2>
+
+      <!-- شريط أفقي على الجوال: أخفّ من شبكة تدفع المحتوى لأسفل -->
+      <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible">
+        @for (c of data.categories; track c.id) {
+          <a [routerLink]="['/paintings']" [queryParams]="{ category: c.slug }"
+             class="shrink-0 border border-ink-200 px-4 py-2.5 text-sm text-ink-700
+                    hover:border-ink-900 hover:bg-canvas-50 transition-colors">
+            {{ c.name }}
+          </a>
+        }
+      </div>
+    </section>
+  }
+
+  <!-- ======================= اطلب لوحتك ======================= -->
+  @if (data.reservable.length) {
+    <section class="bg-ink-900 text-canvas-100 py-12 sm:py-16 mt-6">
+      <div class="mx-auto max-w-7xl px-4 sm:px-8">
+        <div class="max-w-xl mb-8">
+          <p class="text-gilt-400 text-xs mb-2">لوحة خاصة</p>
+          <h2 class="font-display text-2xl sm:text-3xl mb-3 text-canvas-50">
+            اطلب عملاً يُرسم لك وحدك
+          </h2>
+          <p class="text-ink-200 text-sm leading-relaxed">
+            اختر المقاس وصف ما تريد. تراجع الفنانة طلبك وتحدّد السعر والمدة،
+            وتتابع مراحل الرسم بالصور حتى تصلك اللوحة.
+          </p>
+        </div>
+
+        <ol class="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-6 mb-8">
+          @for (step of steps; track step.n) {
+            <li>
+              <span class="block font-display text-xl text-gilt-400 mb-1" data-numeric>{{ step.n }}</span>
+              <span class="block text-[0.8rem] text-canvas-200 leading-relaxed">{{ step.text }}</span>
+            </li>
+          }
+        </ol>
+
+        <a routerLink="/paintings" [queryParams]="{ type: 'reservable' }"
+           class="btn bg-canvas-50 text-ink-900 hover:bg-canvas-200">
+          ابدأ طلبك
+        </a>
+      </div>
+    </section>
+  }
+
+  <!-- ======================= الأحدث ======================= -->
+  @if (data.newest.length) {
+    <section class="mx-auto max-w-7xl px-4 sm:px-8 py-10 sm:py-14">
+      <div class="flex items-end justify-between gap-4 mb-5 sm:mb-7">
+        <div>
+          <p class="eyebrow mb-1">جديد</p>
+          <h2 class="font-display text-xl sm:text-2xl text-ink-900">أحدث الأعمال</h2>
+        </div>
+        <a routerLink="/paintings" [queryParams]="{ sort: '-published_at' }"
+           class="text-sm text-ink-400 hover:text-ink-900 transition-colors shrink-0">الكل ←</a>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+        @for (p of data.newest.slice(0, 8); track p.id) {
+          <app-painting-card [painting]="p" />
+        }
+      </div>
+    </section>
+  }
+
+  <!-- ======================= الأكثر اقتناءً ======================= -->
+  @if (data.bestSellers.length) {
+    <section class="mx-auto max-w-7xl px-4 sm:px-8 pb-12 sm:pb-16">
+      <p class="eyebrow mb-1">اقتناها الآخرون</p>
+      <h2 class="font-display text-xl sm:text-2xl text-ink-900 mb-5 sm:mb-7">الأكثر اقتناءً</h2>
+
+      <div class="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+        @for (p of data.bestSellers; track p.id) {
+          <app-painting-card [painting]="p" />
+        }
+      </div>
+    </section>
+  }
+}

@@ -1,0 +1,131 @@
+<div class="mx-auto max-w-6xl px-4 sm:px-8 py-6 sm:py-10">
+  <h1 class="font-display text-2xl sm:text-3xl text-ink-900 mb-6 sm:mb-8">سلّة المشتريات</h1>
+
+  @if (cart.removed().length) {
+    <div class="bg-warning/10 border-s-2 border-warning px-5 py-4 mb-8 text-sm" role="alert">
+      <p class="text-ink-800 mb-1">أُزيلت من سلّتك لأنها لم تعد متاحة:</p>
+      <p class="text-ink-600">{{ cart.removed().join('، ') }}</p>
+    </div>
+  }
+
+  @if (cart.isEmpty()) {
+    <app-empty-state title="سلّتك فارغة" note="تصفّح المعرض واختر عملاً يناسب مساحتك.">
+      <a routerLink="/paintings"
+         class="inline-block mt-6 bg-ink-900 text-canvas-50 px-7 py-3 text-sm hover:bg-ink-800 transition-colors">
+        تصفّح المعرض
+      </a>
+    </app-empty-state>
+  } @else if (cart.cart(); as c) {
+    <div class="grid lg:grid-cols-[1fr_21rem] gap-6 lg:gap-10 items-start">
+
+      <ul class="space-y-5">
+        @for (item of c.items; track item.id) {
+          <li class="card p-3 sm:p-4 flex gap-4">
+            <a [routerLink]="['/paintings', item.painting.slug]" class="w-20 sm:w-24 shrink-0 mat !aspect-[4/5]">
+              @if (item.painting.mainImage; as img) {
+                <img [src]="img.thumb" [alt]="img.alt || item.painting.title" loading="lazy" class="w-full h-auto" />
+              }
+            </a>
+
+            <div class="flex-1 min-w-0 flex flex-col justify-between py-1">
+              <div>
+                <a [routerLink]="['/paintings', item.painting.slug]"
+                   class="font-display text-lg text-ink-900 hover:text-gilt-700 transition-colors">
+                  {{ item.painting.title }}
+                </a>
+                @if (item.painting.dimensions; as d) {
+                  <p class="text-xs text-ink-400 mt-1" data-numeric>{{ d | dimensions }}</p>
+                }
+              </div>
+
+              <div class="flex items-center justify-between gap-4 mt-3">
+                <div class="flex items-center border border-ink-200">
+                  <button type="button" (click)="updateQuantity(item.id, item.quantity - 1)"
+                          [disabled]="busy()" class="w-9 h-9 text-ink-500 hover:text-ink-900 disabled:opacity-40"
+                          aria-label="إنقاص الكمية">−</button>
+                  <span class="w-9 text-center text-sm" data-numeric>{{ item.quantity }}</span>
+                  <button type="button" (click)="updateQuantity(item.id, item.quantity + 1)"
+                          [disabled]="busy()" class="w-9 h-9 text-ink-500 hover:text-ink-900 disabled:opacity-40"
+                          aria-label="زيادة الكمية">+</button>
+                </div>
+
+                <div class="flex items-center gap-4">
+                  <span class="text-ink-800" data-numeric>{{ item.lineTotal | money }}</span>
+                  <button type="button" (click)="remove(item.id)" [disabled]="busy()"
+                          class="text-xs text-ink-300 hover:text-danger transition-colors">إزالة</button>
+                </div>
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+
+      <!-- ==================== الملخّص ==================== -->
+      <aside class="frame rounded-card p-5 sm:p-6 lg:sticky lg:top-24">
+        <h2 class="font-display text-lg text-ink-900 mb-6 pb-4 border-b border-ink-100">ملخّص الطلب</h2>
+
+        <div class="mb-6">
+          @if (c.coupon) {
+            <div class="flex items-center justify-between bg-success/8 px-3 py-2.5 text-sm">
+              <span class="text-success" data-numeric>{{ c.coupon.code }}</span>
+              <button type="button" (click)="removeCoupon()" [disabled]="busy()"
+                      class="text-xs text-ink-400 hover:text-danger">إزالة</button>
+            </div>
+          } @else {
+            <form (ngSubmit)="applyCoupon()" class="flex gap-2">
+              <label for="coupon" class="sr-only">رمز الخصم</label>
+              <input id="coupon" name="coupon" [(ngModel)]="coupon" type="text" placeholder="رمز الخصم"
+                     class="flex-1 min-w-0 bg-canvas-50 border border-ink-200 px-3 py-2.5 text-sm outline-none
+                            focus:border-gilt-500 transition-colors placeholder:text-ink-300" data-numeric />
+              <button type="submit" [disabled]="busy()"
+                      class="border border-ink-300 px-4 py-2.5 text-sm hover:border-ink-900 disabled:opacity-50 transition-colors">
+                تطبيق
+              </button>
+            </form>
+            @if (couponError()) {
+              <p class="text-xs text-danger mt-2" role="alert">{{ couponError() }}</p>
+            }
+          }
+        </div>
+
+        <dl class="space-y-3 text-sm border-t border-ink-100 pt-5">
+          <div class="flex justify-between">
+            <dt class="text-ink-400">الإجمالي الفرعي</dt>
+            <dd class="text-ink-800" data-numeric>{{ c.totals.subtotal | money }}</dd>
+          </div>
+
+          @if (c.totals.discount.amount > 0) {
+            <div class="flex justify-between">
+              <dt class="text-ink-400">الخصم</dt>
+              <dd class="text-success" data-numeric>− {{ c.totals.discount | money }}</dd>
+            </div>
+          }
+
+          <div class="flex justify-between">
+            <dt class="text-ink-400">الشحن</dt>
+            <dd class="text-ink-500 text-xs">يُحتسب عند إتمام الطلب</dd>
+          </div>
+
+          <div class="flex justify-between">
+            <dt class="text-ink-400">ضريبة القيمة المضافة</dt>
+            <dd class="text-ink-800" data-numeric>{{ c.totals.tax | money }}</dd>
+          </div>
+
+          <div class="flex justify-between pt-4 border-t border-ink-100">
+            <dt class="font-display text-lg text-ink-900">الإجمالي</dt>
+            <dd class="font-display text-lg text-ink-900" data-numeric>{{ c.totals.total | money }}</dd>
+          </div>
+        </dl>
+
+        <a routerLink="/checkout"
+           class="btn btn-primary w-full mt-6">
+          إتمام الطلب
+        </a>
+
+        <a routerLink="/paintings" class="block text-center mt-3 text-xs text-ink-400 hover:text-ink-700 transition-colors">
+          متابعة التصفّح
+        </a>
+      </aside>
+    </div>
+  }
+</div>

@@ -1,0 +1,269 @@
+<a routerLink="/paintings" class="text-sm text-ink-400 hover:text-ink-700 mb-6 inline-block transition-colors">
+  → كل اللوحات
+</a>
+
+<h1 class="font-display text-3xl text-ink-900 mb-8">
+  @if (isNew()) { لوحة جديدة } @else { تعديل اللوحة }
+</h1>
+
+@if (error()) {
+  <p class="bg-danger/8 border-s-2 border-danger px-4 py-3 text-sm text-danger mb-6" role="alert">{{ error() }}</p>
+}
+@if (saved()) {
+  <p class="bg-success/8 border-s-2 border-success px-4 py-3 text-sm text-success mb-6">حُفظت التغييرات.</p>
+}
+
+<form [formGroup]="form" (ngSubmit)="save()" class="grid lg:grid-cols-[1fr_20rem] gap-6 items-start">
+
+  <div class="space-y-6">
+    <!-- ============ الأساسيات ============ -->
+    <section class="frame rounded-card p-6">
+      <h2 class="font-display text-lg text-ink-900 mb-5">الأساسيات</h2>
+
+      <div class="grid sm:grid-cols-2 gap-5">
+        <label class="block sm:col-span-2">
+          <span class="block text-sm text-ink-600 mb-2">العنوان <span class="text-danger">*</span></span>
+          <input formControlName="title" type="text"
+                 class="w-full bg-canvas-50 border px-3.5 py-3 text-sm outline-none transition-colors"
+                 [class]="invalid('title') ? 'border-danger' : 'border-ink-200 focus:border-gilt-500'" />
+        </label>
+
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">رمز المنتج</span>
+          <input formControlName="sku" type="text" placeholder="يُولَّد تلقائياً"
+                 class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+        </label>
+
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">التصنيف</span>
+          <select formControlName="category_id"
+                  class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500">
+            <option [ngValue]="null">— بلا تصنيف —</option>
+            @if (categories.value(); as cats) {
+              @for (c of cats.data; track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+            }
+          </select>
+        </label>
+
+        <label class="block sm:col-span-2">
+          <span class="block text-sm text-ink-600 mb-2">وصف مختصر</span>
+          <input formControlName="short_description" type="text" maxlength="500"
+                 class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" />
+        </label>
+
+        <label class="block sm:col-span-2">
+          <span class="block text-sm text-ink-600 mb-2">الوصف الكامل</span>
+          <textarea formControlName="description" rows="6"
+                    class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500 resize-y leading-relaxed"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <!-- ============ السعر والنوع ============ -->
+    <section class="frame rounded-card p-6">
+      <h2 class="font-display text-lg text-ink-900 mb-5">السعر والإتاحة</h2>
+
+      <div class="grid sm:grid-cols-2 gap-5">
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">السعر (ر.س) <span class="text-danger">*</span></span>
+          <input formControlName="price" type="number" min="0" step="50"
+                 class="w-full bg-canvas-50 border px-3.5 py-3 text-sm outline-none transition-colors"
+                 [class]="invalid('price') ? 'border-danger' : 'border-ink-200 focus:border-gilt-500'" data-numeric />
+        </label>
+
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">سعر الخصم</span>
+          <input formControlName="discount_price" type="number" min="0" step="50"
+                 class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+        </label>
+
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">النوع <span class="text-danger">*</span></span>
+          <select formControlName="painting_type"
+                  class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500">
+            <option value="ready_made">جاهزة للبيع</option>
+            <option value="reservable">قابلة للحجز</option>
+            <option value="custom_order">طلب خاص</option>
+          </select>
+        </label>
+
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">التوفّر</span>
+          <select formControlName="availability"
+                  class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500">
+            <option value="available">متاحة</option>
+            <option value="reserved">محجوزة</option>
+            <option value="sold">مباعة</option>
+            <option value="out_of_stock">نفدت الكمية</option>
+            <option value="in_production">قيد التنفيذ</option>
+            <option value="unavailable">غير متاحة</option>
+          </select>
+        </label>
+
+        @if (isReservable()) {
+          <label class="block">
+            <span class="block text-sm text-ink-600 mb-2">نسبة العربون (٪)</span>
+            <input formControlName="deposit_percentage" type="number" min="0" max="100"
+                   class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+          </label>
+
+          <label class="block">
+            <span class="block text-sm text-ink-600 mb-2">مدة التنفيذ (يوم)</span>
+            <input formControlName="production_days" type="number" min="1" max="365"
+                   class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+          </label>
+        } @else {
+          <label class="block">
+            <span class="block text-sm text-ink-600 mb-2">الكمية</span>
+            <input formControlName="stock_quantity" type="number" min="0"
+                   class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+            <span class="text-xs text-ink-400 mt-1 block">اللوحة الأصلية قطعة واحدة عادةً.</span>
+          </label>
+        }
+      </div>
+    </section>
+
+    <!-- ============ المواصفات ============ -->
+    <section class="frame rounded-card p-6">
+      <h2 class="font-display text-lg text-ink-900 mb-5">المواصفات</h2>
+
+      <div class="grid sm:grid-cols-3 gap-5">
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">العرض (سم)</span>
+          <input formControlName="width" type="number" min="1"
+                 class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+        </label>
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">الارتفاع (سم)</span>
+          <input formControlName="height" type="number" min="1"
+                 class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+        </label>
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">العمق (سم)</span>
+          <input formControlName="depth" type="number" min="0"
+                 class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+        </label>
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">الخامة</span>
+          <input formControlName="material" type="text" placeholder="قماش كتّاني"
+                 class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" />
+        </label>
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">الوسيط</span>
+          <input formControlName="medium" type="text" placeholder="ألوان زيتية"
+                 class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" />
+        </label>
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">الإطار</span>
+          <input formControlName="frame_info" type="text" placeholder="إطار خشبي طبيعي"
+                 class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" />
+        </label>
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">الأسلوب</span>
+          <input formControlName="style" type="text"
+                 class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" />
+        </label>
+        <label class="block">
+          <span class="block text-sm text-ink-600 mb-2">الوزن (كجم)</span>
+          <input formControlName="weight" type="number" min="0" step="0.1"
+                 class="w-full bg-canvas-50 border border-ink-200 px-3.5 py-3 text-sm outline-none focus:border-gilt-500" data-numeric />
+        </label>
+      </div>
+    </section>
+
+    <!-- ============ الصور ============ -->
+    <section class="frame rounded-card p-6">
+      <h2 class="font-display text-lg text-ink-900 mb-2">الصور</h2>
+
+      @if (isNew()) {
+        <p class="text-sm text-ink-400 py-4">احفظ اللوحة أولاً لتتمكّن من رفع الصور.</p>
+      } @else {
+        <p class="text-xs text-ink-400 mb-5">
+          JPEG أو PNG أو WebP، حتى ٨ ميغابايت للصورة. تُحوَّل تلقائياً إلى WebP وتُولَّد نسخها.
+        </p>
+
+        <input type="file" accept="image/jpeg,image/png,image/webp" multiple (change)="uploadImages($event)"
+               [disabled]="uploading()"
+               class="block w-full text-sm text-ink-600 mb-5
+                      file:me-4 file:py-2.5 file:px-5 file:border-0 file:text-sm
+                      file:bg-ink-900 file:text-canvas-50 hover:file:bg-ink-800 file:cursor-pointer" />
+
+        @if (uploading()) { <app-spinner label="…جارٍ رفع الصور" /> }
+
+        @if (painting.value(); as p) {
+          @if (p.images.length) {
+            <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              @for (img of p.images; track img.id) {
+                <div class="relative group">
+                  <img [src]="img.thumb" [alt]="img.alt || p.title" class="w-full h-auto bg-canvas-200"
+                       [class.ring-2]="img.isMain" [class.ring-gilt-500]="img.isMain" />
+
+                  <div class="absolute inset-x-0 bottom-0 bg-ink-950/75 opacity-0 group-hover:opacity-100
+                              transition-opacity flex text-[0.65rem]">
+                    @if (!img.isMain) {
+                      <button type="button" (click)="setMain(img.id)"
+                              class="flex-1 py-1.5 text-canvas-100 hover:bg-ink-800">رئيسية</button>
+                    } @else {
+                      <span class="flex-1 py-1.5 text-gilt-400 text-center">رئيسية</span>
+                    }
+                    <button type="button" (click)="deleteImage(img.id)"
+                            class="flex-1 py-1.5 text-danger hover:bg-ink-800">حذف</button>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="text-sm text-ink-400">لا صور بعد.</p>
+          }
+        }
+      }
+    </section>
+  </div>
+
+  <!-- ============ النشر ============ -->
+  <aside class="space-y-4 lg:sticky lg:top-6">
+    <section class="frame rounded-card p-5">
+      <h2 class="font-display text-base text-ink-900 mb-4">النشر</h2>
+
+      <label class="block mb-4">
+        <span class="block text-sm text-ink-600 mb-2">تاريخ النشر</span>
+        <input formControlName="published_at" type="date"
+               class="w-full bg-canvas-50 border border-ink-200 px-3 py-2.5 text-sm outline-none focus:border-gilt-500" data-numeric />
+        <span class="text-xs text-ink-400 mt-1 block">اتركه فارغاً لتبقى مسوّدة لا تظهر في المعرض.</span>
+      </label>
+
+      <label class="flex items-center gap-2.5 text-sm text-ink-600 mb-5">
+        <input formControlName="is_featured" type="checkbox" class="accent-gilt-600" />
+        اعرضها ضمن المختارات
+      </label>
+
+      <button type="submit" [disabled]="busy()"
+              class="w-full bg-ink-900 text-canvas-50 py-3 text-sm hover:bg-ink-800 disabled:opacity-50 transition-colors">
+        @if (busy()) { …جارٍ الحفظ } @else if (isNew()) { أنشئ اللوحة } @else { احفظ التغييرات }
+      </button>
+
+      @if (!isNew()) {
+        <button type="button" (click)="remove()" [disabled]="busy()"
+                class="w-full mt-2.5 border border-danger/40 text-danger py-3 text-sm hover:bg-danger/5 disabled:opacity-50 transition-colors">
+          حذف اللوحة
+        </button>
+      }
+    </section>
+
+    <section class="frame rounded-card p-5">
+      <h2 class="font-display text-base text-ink-900 mb-4">تحسين الظهور</h2>
+
+      <label class="block mb-4">
+        <span class="block text-sm text-ink-600 mb-2">عنوان الصفحة</span>
+        <input formControlName="seo_title" type="text"
+               class="w-full bg-canvas-50 border border-ink-200 px-3 py-2.5 text-sm outline-none focus:border-gilt-500" />
+      </label>
+
+      <label class="block">
+        <span class="block text-sm text-ink-600 mb-2">وصف الصفحة</span>
+        <textarea formControlName="seo_description" rows="3" maxlength="500"
+                  class="w-full bg-canvas-50 border border-ink-200 px-3 py-2.5 text-sm outline-none focus:border-gilt-500 resize-y"></textarea>
+      </label>
+    </section>
+  </aside>
+</form>

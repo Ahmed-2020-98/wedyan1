@@ -1,0 +1,20 @@
+# وديان — معرض اللوحات
+
+User-agent: *
+Allow: /
+
+# صفحات خاصة بالزائر لا معنى لفهرستها، وبعضها خلف تسجيل الدخول أصلاً.
+Disallow: /account
+Disallow: /account/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /checkout/
+Disallow: /reserve/
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+
+# تُخدَم من الخادم لأنها مولّدة من قاعدة البيانات — انظر docs/DEPLOYMENT.md
+Sitemap: https://wedyan.sa/sitemap.xml

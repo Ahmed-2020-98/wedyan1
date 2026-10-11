@@ -1,0 +1,135 @@
+<header class="mb-8">
+  <p class="eyebrow mb-2">نظرة عامة</p>
+  <h1 class="font-display text-3xl text-ink-900">لوحة التحكم</h1>
+</header>
+
+@if (data.isLoading()) {
+  <app-spinner />
+} @else if (data.error()) {
+  <p class="text-danger text-sm">تعذّر تحميل البيانات.</p>
+} @else if (data.value(); as res) {
+  @if (res.data; as d) {
+
+    <!-- ==================== البطاقات ==================== -->
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
+      <div class="frame rounded-card p-6">
+        <p class="text-xs text-ink-400 mb-2">الإيراد الإجمالي</p>
+        <p class="font-display text-2xl text-ink-900" data-numeric>{{ d.revenue.total | money }}</p>
+        <p class="text-xs text-ink-400 mt-1.5" data-numeric>هذا الشهر: {{ d.revenue.thisMonth | money }}</p>
+      </div>
+
+      <a routerLink="/orders" class="frame rounded-card p-6 block">
+        <p class="text-xs text-ink-400 mb-2">الطلبات</p>
+        <p class="font-display text-2xl text-ink-900" data-numeric>{{ d.orders.total }}</p>
+        <p class="text-xs mt-1.5" [class]="d.orders.toPrepare > 0 ? 'text-warning' : 'text-ink-400'" data-numeric>
+          {{ d.orders.toPrepare }} بحاجة تجهيز
+        </p>
+      </a>
+
+      <a routerLink="/reservations" class="frame rounded-card p-6 block">
+        <p class="text-xs text-ink-400 mb-2">الحجوزات</p>
+        <p class="font-display text-2xl text-ink-900" data-numeric>{{ d.reservations.total }}</p>
+        <p class="text-xs mt-1.5" [class]="d.reservations.pending > 0 ? 'text-warning' : 'text-ink-400'" data-numeric>
+          {{ d.reservations.pending }} بانتظار المراجعة
+        </p>
+      </a>
+
+      <a routerLink="/paintings" class="frame rounded-card p-6 block">
+        <p class="text-xs text-ink-400 mb-2">اللوحات</p>
+        <p class="font-display text-2xl text-ink-900" data-numeric>{{ d.paintings.total }}</p>
+        <p class="text-xs text-ink-400 mt-1.5" data-numeric>
+          {{ d.paintings.available }} متاحة · {{ d.paintings.sold }} مباعة
+        </p>
+      </a>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-6 mb-8">
+
+      <!-- ==================== الإيراد الشهري ==================== -->
+      <section class="frame rounded-card p-6">
+        <h2 class="font-display text-lg text-ink-900 mb-6">الإيراد الشهري</h2>
+
+        @if (d.charts.monthlyRevenue.length === 0) {
+          <p class="text-sm text-ink-400 py-8 text-center">لا مبيعات بعد.</p>
+        } @else {
+          <div class="flex items-end gap-2 h-40" role="img" aria-label="رسم بياني للإيراد الشهري">
+            @for (row of d.charts.monthlyRevenue; track row.month) {
+              <div class="flex-1 flex flex-col items-center gap-2 min-w-0">
+                <span class="text-[0.65rem] text-ink-400" data-numeric>{{ row.revenue }}</span>
+                <div class="w-full bg-gilt-500/80 hover:bg-gilt-500 transition-colors"
+                     [style.height.px]="8 + (row.revenue / maxRevenue(d.charts.monthlyRevenue)) * 110"
+                     [title]="monthLabel(row.month) + ': ' + row.revenue"></div>
+                <span class="text-[0.65rem] text-ink-400 truncate w-full text-center">{{ monthLabel(row.month) }}</span>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- ==================== الأكثر مبيعاً ==================== -->
+      <section class="frame rounded-card p-6">
+        <h2 class="font-display text-lg text-ink-900 mb-6">الأكثر اقتناءً</h2>
+
+        @if (d.charts.bestSellers.length === 0) {
+          <p class="text-sm text-ink-400 py-8 text-center">لا مبيعات بعد.</p>
+        } @else {
+          <ul class="space-y-4">
+            @for (p of d.charts.bestSellers; track p.title) {
+              <li>
+                <div class="flex justify-between text-sm mb-1.5">
+                  <span class="text-ink-700 truncate">{{ p.title }}</span>
+                  <span class="text-ink-400 shrink-0 ms-3" data-numeric>{{ p.sold }}</span>
+                </div>
+                <div class="h-1.5 bg-ink-100">
+                  <div class="h-full bg-ink-700"
+                       [style.width.%]="(p.sold / maxSold(d.charts.bestSellers)) * 100"></div>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </div>
+
+    <!-- ==================== أحدث الطلبات ==================== -->
+    <section class="frame rounded-card p-6">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="font-display text-lg text-ink-900">أحدث الطلبات</h2>
+        <a routerLink="/orders" class="text-sm text-ink-400 hover:text-ink-800 transition-colors">الكل ←</a>
+      </div>
+
+      @if (d.recentOrders.length === 0) {
+        <p class="text-sm text-ink-400 py-6 text-center">لا طلبات بعد.</p>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm min-w-[34rem]">
+            <thead>
+              <tr class="text-xs text-ink-400 border-b border-ink-100">
+                <th class="text-start font-normal pb-3">رقم الطلب</th>
+                <th class="text-start font-normal pb-3">الزبون</th>
+                <th class="text-start font-normal pb-3">الإجمالي</th>
+                <th class="text-start font-normal pb-3">الحالة</th>
+                <th class="text-start font-normal pb-3">التاريخ</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (o of d.recentOrders; track o.orderNumber) {
+                <tr class="border-b border-ink-50">
+                  <td class="py-3">
+                    <a [routerLink]="['/orders', o.orderNumber]" class="text-ink-800 hover:text-gilt-700" data-numeric>
+                      {{ o.orderNumber }}
+                    </a>
+                  </td>
+                  <td class="py-3 text-ink-600">{{ o.customer }}</td>
+                  <td class="py-3 text-ink-800" data-numeric>{{ o.total | money }}</td>
+                  <td class="py-3"><span class="text-xs px-2 py-0.5 bg-canvas-200 text-ink-600">{{ o.statusLabel }}</span></td>
+                  <td class="py-3 text-ink-400 text-xs" data-numeric>{{ o.createdAt | arDate }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+}
